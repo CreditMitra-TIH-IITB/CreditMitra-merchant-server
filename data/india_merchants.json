@@ -1,0 +1,28 @@
+{
+  "_meta": {
+    "issue": "#9",
+    "note": "Standalone merchant enrichment dictionary."
+  },
+  "merchants": [
+    {"canonical_name": "Flipkart", "aliases": ["flipkart", "flipkar t", "flipkar", "flipkart internet", "flipkart payments"], "category": "shopping", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Amazon", "aliases": ["amazon", "amazon pay", "amazon seller", "amazonin", "amzn"], "category": "shopping", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Swiggy", "aliases": ["swiggy", "swiggy li", "swiggy limited", "swiggy stores", "swiggystores", "bundl technologies"], "category": "food_delivery", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Zomato", "aliases": ["zomato", "zomato li", "zomato limited", "eternal"], "category": "food_delivery", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Blinkit", "aliases": ["blinkit", "grofers", "blink commerce"], "category": "quick_commerce", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Zepto", "aliases": ["zepto", "kiranakart"], "category": "quick_commerce", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "BigBasket", "aliases": ["bigbasket", "bigbaske", "big basket", "supermarket grocery"], "category": "groceries", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Jio", "aliases": ["jio", "myjio", "jio recha", "jio recharge", "reliance jio", "jio infocomm"], "category": "telecom", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+    {"canonical_name": "Airtel", "aliases": ["airtel", "bharti airtel", "airtel pay", "mairtel"], "category": "telecom", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+    {"canonical_name": "IRCTC", "aliases": ["irctc", "irctc web", "irctct our", "irctc tour", "irctc cf", "irctcweb", "indian railway"], "category": "transport", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Uber", "aliases": ["uber", "uber india", "uberrides"], "category": "transport", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Ola", "aliases": ["ola", "ani technologies", "ola cabs"], "category": "transport", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Netflix", "aliases": ["netflix", "netflix entertainment"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "subscription"},
+    {"canonical_name": "Groww", "aliases": ["groww", "iccl groww", "icclgroww", "iccl-groww", "groww invest", "groww invest tech", "nextbillion"], "category": "investments", "is_essential": false, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "Zerodha", "aliases": ["zerodha", "zerodha broking", "kite"], "category": "investments", "is_essential": false, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "LIC", "aliases": ["lic", "life insurance corp", "lic of india"], "category": "insurance", "is_essential": true, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "Simpl", "aliases": ["simpl", "getsimpl", "one sigma"], "category": "bnpl_lending", "is_essential": false, "risk_flag": "bnpl_lending", "lifestyle_dim": "leverage", "recurring_type": "emi_like"},
+    {"canonical_name": "LazyPay", "aliases": ["lazypay", "lazy pay", "payu finance"], "category": "bnpl_lending", "is_essential": false, "risk_flag": "bnpl_lending", "lifestyle_dim": "leverage", "recurring_type": "emi_like"},
+    {"canonical_name": "Dream11", "aliases": ["dream11", "dream 11", "sporta technologies"], "category": "gambling", "is_essential": false, "risk_flag": "gambling", "lifestyle_dim": "risk", "recurring_type": "adhoc"},
+    {"canonical_name": "WazirX", "aliases": ["wazirx", "wazir x", "zanmai"], "category": "crypto", "is_essential": false, "risk_flag": "crypto", "lifestyle_dim": "risk", "recurring_type": "adhoc"}
+  ]
+}

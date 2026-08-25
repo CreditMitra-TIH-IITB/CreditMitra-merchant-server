@@ -1,0 +1,19 @@
+# Never bake the runtime cache into an image — it holds payee names
+# derived from real bank statements.
+data/enrichment_cache.db
+data/*.db
+
+.git/
+.gitignore
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.env
+.env.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+test_server.py
+conftest.py
+README.md

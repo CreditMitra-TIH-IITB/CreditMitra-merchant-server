@@ -29,3 +29,6 @@ data/*.db
 .idea/
 .DS_Store
 Thumbs.db
+
+# Proposer audit trail — contains merchant names and model output
+data/merchant_candidates.db

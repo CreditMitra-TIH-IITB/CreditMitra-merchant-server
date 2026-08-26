@@ -15,5 +15,7 @@ venv/
 .mypy_cache/
 .ruff_cache/
 test_server.py
+test_proposer.py
 conftest.py
 README.md
+data/merchant_candidates.db

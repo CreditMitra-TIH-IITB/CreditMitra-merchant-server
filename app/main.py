@@ -7,6 +7,12 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 
 from app.enrichment import get_server_resolver, reset_server_resolver
+from app.proposer import (
+    init_candidate_store,
+    list_candidates,
+    reverse_promotion,
+    run_proposer,
+)
 from app.schemas import (
     EnrichRequest,
     EnrichResponse,
@@ -90,6 +96,89 @@ def list_unresolved(
         total=len(rows),
         items=[UnresolvedMerchant(**row) for row in rows],
     )
+
+
+@app.post(
+    "/api/v1/merchants/propose",
+    dependencies=[Depends(require_api_key)],
+)
+def propose(limit: Annotated[int, Query(ge=1, le=200)] = 25) -> dict[str, object]:
+    """Work the curation queue: search, propose, promote.
+
+    A job, not part of the enrichment path — it makes a web call and two model
+    calls per merchant. Run it on a schedule; enrichment keeps answering from
+    the dictionary in the meantime.
+    """
+    outcomes = run_proposer(limit=limit)
+    resolver = get_server_resolver()
+    return {
+        "considered": len(outcomes),
+        "promoted": sum(1 for o in outcomes if o.status == "promoted"),
+        "held": sum(1 for o in outcomes if o.status == "held"),
+        "dictionary_version": resolver.dictionary_version,
+        "outcomes": [
+            {
+                "name": o.raw_name,
+                "category": o.category,
+                "confidence": round(o.confidence, 3),
+                "agreement": o.agreement,
+                "status": o.status,
+                "reason": o.reason,
+                "model": o.model,
+            }
+            for o in outcomes
+        ],
+    }
+
+
+@app.get(
+    "/api/v1/merchants/candidates",
+    dependencies=[Depends(require_api_key)],
+)
+def candidates(
+    status: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> dict[str, object]:
+    """The audit trail.
+
+    Promotion is automatic, so this is where a wrong entry gets found. Every
+    candidate keeps the evidence, the summary, both models' opinions and the
+    reason it was promoted or held — enough to answer "why is this tagged
+    gambling" without re-running anything.
+    """
+    resolver = get_server_resolver()
+    init_candidate_store(resolver.candidate_path)
+    return {
+        "dictionary_version": resolver.dictionary_version,
+        "items": list_candidates(resolver.candidate_path, status=status, limit=limit),
+    }
+
+
+@app.post(
+    "/api/v1/merchants/reverse/{normalized_name}",
+    dependencies=[Depends(require_api_key)],
+)
+def reverse(normalized_name: str) -> dict[str, object]:
+    """Undo an automatic promotion.
+
+    Only removes entries the proposer wrote — a hand-curated merchant is never
+    touched by an audit reversal. The dictionary hash changes, so cached answers
+    derived from the bad entry retire themselves.
+    """
+    resolver = get_server_resolver()
+    removed = reverse_promotion(
+        resolver.dictionary_path, resolver.candidate_path, normalized_name
+    )
+    if not removed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No auto-promoted entry with that normalized name",
+        )
+    return {
+        "status": "reversed",
+        "normalized_name": normalized_name,
+        "dictionary_version": get_server_resolver().dictionary_version,
+    }
 
 
 @app.post(

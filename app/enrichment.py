@@ -58,17 +58,23 @@ class MerchantServerResolver:
         self._alias_map: dict[str, dict[str, Any]] = {}
         self._gig_aliases: set[str] = set()
         self.dictionary_version = "unknown"
+        # Captured at construction so a monkeypatched path stays consistent for
+        # the lifetime of this resolver, and so the proposer writes to the same
+        # dictionary this instance read.
+        self.dictionary_path = _DICT_PATH
+        self.cache_path = _CACHE_PATH
+        self.candidate_path = _CACHE_PATH.with_name("merchant_candidates.db")
         self._load_dictionary()
         self._init_cache()
 
     # -- dictionary ---------------------------------------------------------
 
     def _load_dictionary(self) -> None:
-        if not _DICT_PATH.exists():
-            logger.warning("Merchant dictionary not found: %s", _DICT_PATH)
+        if not self.dictionary_path.exists():
+            logger.warning("Merchant dictionary not found: %s", self.dictionary_path)
             return
         try:
-            data = json.loads(_DICT_PATH.read_text(encoding="utf-8"))
+            data = json.loads(self.dictionary_path.read_text(encoding="utf-8"))
         except Exception as exc:
             logger.error("Merchant dictionary unreadable: %s", exc)
             return
@@ -93,12 +99,12 @@ class MerchantServerResolver:
     # -- storage ------------------------------------------------------------
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(_CACHE_PATH, timeout=5.0)
+        conn = sqlite3.connect(self.cache_path, timeout=5.0)
         conn.execute("PRAGMA journal_mode=WAL")
         return conn
 
     def _init_cache(self) -> None:
-        _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        self.cache_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
             # The cache is derived data. If it predates the provenance columns,
             # rebuilding it is cheaper and safer than migrating it — and the old
@@ -212,7 +218,7 @@ class MerchantServerResolver:
         except Exception as exc:
             logger.debug("Miss ledger write failed for %r: %s", norm_name, exc)
 
-    def _clear_miss(self, norm_name: str) -> None:
+    def clear_miss(self, norm_name: str) -> None:
         """A name that now resolves is no longer a gap — drop it from the queue
         so the ledger stays a to-do list rather than a history."""
         try:
@@ -300,7 +306,7 @@ class MerchantServerResolver:
         hit = self.lookup_dict(norm)
         if hit is not None:
             self._save_to_cache(norm, hit, SOURCE_DICTIONARY)
-            self._clear_miss(norm)
+            self.clear_miss(norm)
             return hit
 
         fallback = MerchantEnrichment.unknown(raw_name)

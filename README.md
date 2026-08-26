@@ -98,6 +98,99 @@ unresolved name ──► queue (name + frequency) ──► add to dictionary
 > which includes any person misclassified as one upstream. Treat it as reviewed
 > data, not a public endpoint, and keep it behind the API key as it is today.
 
+## The curation loop
+
+The queue curates itself. A scheduled job works through it, and what clears the
+bar is written to the dictionary automatically.
+
+```bash
+curl -X POST -H "X-API-Key: $MERCHANT_API_KEY"   "http://localhost:8001/api/v1/merchants/propose?limit=25"
+```
+
+For each unresolved name asked for at least `MERCHANT_MIN_HIT_COUNT` times:
+
+```
+evidence   = LangSearch(name)
+grounded   = model(name, evidence)      ── path 1
+parametric = model(name, no evidence)   ── path 2
+record candidate; promote if it clears the bar for its severity tier
+```
+
+**Two paths, so agreement is usable as confidence.** A model recalling a
+merchant from its weights and a model reading live search results are wrong in
+different ways; when they land on the same category that is meaningfully
+stronger than either alone, and it costs one extra call on a workload measured
+in hundreds of merchants.
+
+**The model picks one thing.** It chooses `category`; `is_essential`,
+`lifestyle_dim` and `risk_flag` are looked up from the taxonomy. A proposal of
+`gambling` with `lifestyle_dim: essential` is not something to defend against,
+because it cannot be expressed.
+
+**`MERCHANT_MIN_HIT_COUNT` is a privacy control as much as a cost one.** A
+person's name appears in one customer's statement; a real merchant appears
+across many. Requiring repeats keeps most misclassified individuals out of the
+proposal path before anything leaves this server.
+
+### Promotion is automatic
+
+Candidates above threshold reach the dictionary with no human in the loop. Two
+things make that survivable:
+
+| Tier | Categories | Bar |
+|---|---|---|
+| Ordinary | everything else | confidence ≥ `MERCHANT_PROMOTE_THRESHOLD` (0.75) |
+| High severity | `gambling`, `bnpl_lending`, `crypto`, `loan_emi` | confidence ≥ 0.90 **and** both paths agree |
+
+The second tier exists because those labels are the ones that damage a borrower
+when they are wrong — a false `gambling` tag drives L6 to zero and lands the
+person in the Gambler archetype — and the ones a model most readily over-applies,
+since any payments app can look like a lender from a name alone. It is a higher
+threshold, not a review gate; `MERCHANT_REQUIRE_AGREEMENT=0` flattens it.
+
+Every promotion carries its provenance into the dictionary entry:
+
+```json
+"provenance": {
+  "source": "auto", "model": "gemini:gemini-2.0-flash", "confidence": 0.93,
+  "summary": "...", "evidence": "...", "promoted_at": 1756900000.0
+}
+```
+
+So "why is this tagged gambling, and on what evidence" is answerable months
+later without re-running anything.
+
+```bash
+# what got promoted, what was held, and why
+curl -H "X-API-Key: $KEY" "localhost:8001/api/v1/merchants/candidates?status=held"
+
+# undo a bad automatic promotion
+curl -X POST -H "X-API-Key: $KEY" "localhost:8001/api/v1/merchants/reverse/nykaa%20fashion"
+```
+
+Reversal only removes entries the proposer wrote — a hand-curated merchant is
+never touched by an audit. The dictionary hash changes either way, so cached
+answers derived from a reversed entry retire themselves.
+
+### Choosing a model
+
+`MERCHANT_LLM_PROVIDER` selects the backend and the interface is deliberately
+thin, because WP3 asks for a comparison across models on cost, coverage and
+speed rather than a vendor decision. With no key configured the provider
+abstains on everything — a server with no model should add nothing to the
+dictionary, not guess from names.
+
+The number worth optimising is **precision on non-abstentions, not coverage**.
+An abstention leaves a merchant as `other` and costs a little coverage. A
+confident mislabel corrupts every index that reads the category and never
+surfaces on its own. Any model that cannot reliably say "I don't know" is
+disqualified regardless of how good its accuracy looks.
+
+> The Gemini and LangSearch calls have **not been exercised against the live
+> APIs** — they were written without outbound network access. The pipeline,
+> the gate and the audit trail are covered by tests using fake providers;
+> expect to fix small things in the request/response shapes on first contact.
+
 ---
 
 ## API

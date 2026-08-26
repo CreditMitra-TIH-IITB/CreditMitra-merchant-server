@@ -1,28 +1,114 @@
 {
   "_meta": {
-    "issue": "#9",
-    "note": "Standalone merchant enrichment dictionary."
+    "issue": "#6",
+    "note": "Aliases matter: real UPI narrations TRUNCATE merchant names to ~10 chars ('SWIGGY LI', 'FLIPKAR T', 'JIO RECHA', 'IRCTCT OUR'). Every alias is stored pre-normalized (lowercase, no punctuation/spaces collapsed). Lookup = exact alias match, then prefix match. All `category` values MUST exist in docs/taxonomy.md.",
+    "seeded_from": "merchants observed in real Canara/HDFC statements + top-200 India UPI merchants",
+    "count_target": "150-300 — this file is the starting ~70, extend it"
   },
   "merchants": [
     {"canonical_name": "Flipkart", "aliases": ["flipkart", "flipkar t", "flipkar", "flipkart internet", "flipkart payments"], "category": "shopping", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
     {"canonical_name": "Amazon", "aliases": ["amazon", "amazon pay", "amazon seller", "amazonin", "amzn"], "category": "shopping", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Myntra", "aliases": ["myntra", "myntra design"], "category": "shopping", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Meesho", "aliases": ["meesho", "fashnear"], "category": "shopping", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Ajio", "aliases": ["ajio", "reliance retail ajio"], "category": "shopping", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Nykaa", "aliases": ["nykaa", "fsn ecommerce"], "category": "personal_care", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+
     {"canonical_name": "Swiggy", "aliases": ["swiggy", "swiggy li", "swiggy limited", "swiggy stores", "swiggystores", "bundl technologies"], "category": "food_delivery", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
     {"canonical_name": "Zomato", "aliases": ["zomato", "zomato li", "zomato limited", "eternal"], "category": "food_delivery", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Swiggy Instamart", "aliases": ["instamart", "swiggy instamart", "swiggy ins"], "category": "quick_commerce", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
     {"canonical_name": "Blinkit", "aliases": ["blinkit", "grofers", "blink commerce"], "category": "quick_commerce", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
     {"canonical_name": "Zepto", "aliases": ["zepto", "kiranakart"], "category": "quick_commerce", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+
     {"canonical_name": "BigBasket", "aliases": ["bigbasket", "bigbaske", "big basket", "supermarket grocery"], "category": "groceries", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "DMart", "aliases": ["dmart", "d mart", "avenue supermarts"], "category": "groceries", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Reliance Fresh", "aliases": ["reliance fresh", "reliance sm", "reliance smart", "reliance retail"], "category": "groceries", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "JioMart", "aliases": ["jiomart", "jio mart"], "category": "groceries", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+
     {"canonical_name": "Jio", "aliases": ["jio", "myjio", "jio recha", "jio recharge", "reliance jio", "jio infocomm"], "category": "telecom", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
     {"canonical_name": "Airtel", "aliases": ["airtel", "bharti airtel", "airtel pay", "mairtel"], "category": "telecom", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+    {"canonical_name": "Vi", "aliases": ["vi", "vodafone idea", "vodafone", "idea cellular"], "category": "telecom", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+    {"canonical_name": "BSNL", "aliases": ["bsnl", "bharat sanchar"], "category": "telecom", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+
+    {"canonical_name": "Indian Oil", "aliases": ["indian oil", "iocl", "indianoil", "indian oil corp"], "category": "fuel", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "HP Petrol", "aliases": ["hpcl", "hindustan petroleum", "hp petrol"], "category": "fuel", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Bharat Petroleum", "aliases": ["bpcl", "bharat petroleum"], "category": "fuel", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Shell", "aliases": ["shell", "shell india"], "category": "fuel", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+
     {"canonical_name": "IRCTC", "aliases": ["irctc", "irctc web", "irctct our", "irctc tour", "irctc cf", "irctcweb", "indian railway"], "category": "transport", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
     {"canonical_name": "Uber", "aliases": ["uber", "uber india", "uberrides"], "category": "transport", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
     {"canonical_name": "Ola", "aliases": ["ola", "ani technologies", "ola cabs"], "category": "transport", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Rapido", "aliases": ["rapido", "roppen"], "category": "transport", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Namma Metro", "aliases": ["namma metro", "bmrcl", "dmrc", "delhi metro", "metro rail"], "category": "transport", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+
+    {"canonical_name": "Goibibo", "aliases": ["goibibo", "goibi", "ibibo"], "category": "travel", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "MakeMyTrip", "aliases": ["makemytrip", "makemytri", "mmt"], "category": "travel", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Cleartrip", "aliases": ["cleartrip", "cleartri"], "category": "travel", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "IndiGo", "aliases": ["indigo", "interglobe aviation", "goindigo"], "category": "travel", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "OYO", "aliases": ["oyo", "oravel"], "category": "travel", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+
     {"canonical_name": "Netflix", "aliases": ["netflix", "netflix entertainment"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "subscription"},
+    {"canonical_name": "Disney+ Hotstar", "aliases": ["hotstar", "disney hotstar", "disney+ hotstar", "novi digital"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "subscription"},
+    {"canonical_name": "Amazon Prime", "aliases": ["amazon prime", "prime video"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "subscription"},
+    {"canonical_name": "Spotify", "aliases": ["spotify", "spotify india"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "subscription"},
+    {"canonical_name": "JioHotstar", "aliases": ["jiohotstar", "jiocinema", "jio cinema"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "subscription"},
+    {"canonical_name": "BookMyShow", "aliases": ["bookmyshow", "bigtree entertainment", "bms"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "adhoc"},
+    {"canonical_name": "Kuku FM", "aliases": ["kukufm", "kuku fm", "kukufmonline"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "subscription"},
+    {"canonical_name": "YouTube Premium", "aliases": ["youtube premium", "google youtube"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "subscription"},
+
     {"canonical_name": "Groww", "aliases": ["groww", "iccl groww", "icclgroww", "iccl-groww", "groww invest", "groww invest tech", "nextbillion"], "category": "investments", "is_essential": false, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
     {"canonical_name": "Zerodha", "aliases": ["zerodha", "zerodha broking", "kite"], "category": "investments", "is_essential": false, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "ICCL", "aliases": ["iccl", "iccl mu", "iccl-mu", "indian clearing corp"], "category": "investments", "is_essential": false, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "Upstox", "aliases": ["upstox", "rksv"], "category": "investments", "is_essential": false, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "Angel One", "aliases": ["angel one", "angel broking"], "category": "investments", "is_essential": false, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "Coin by Zerodha", "aliases": ["coin zerodha", "zerodha coin"], "category": "investments", "is_essential": false, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "ET Money", "aliases": ["et money", "etmoney", "times internet"], "category": "investments", "is_essential": false, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+
     {"canonical_name": "LIC", "aliases": ["lic", "life insurance corp", "lic of india"], "category": "insurance", "is_essential": true, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "HDFC Life", "aliases": ["hdfc life", "hdfc standard life"], "category": "insurance", "is_essential": true, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "Star Health", "aliases": ["star health", "star health insurance"], "category": "insurance", "is_essential": true, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+    {"canonical_name": "Policybazaar", "aliases": ["policybazaar", "policy bazaar", "pb fintech"], "category": "insurance", "is_essential": true, "risk_flag": null, "lifestyle_dim": "commitment", "recurring_type": "emi_like"},
+
     {"canonical_name": "Simpl", "aliases": ["simpl", "getsimpl", "one sigma"], "category": "bnpl_lending", "is_essential": false, "risk_flag": "bnpl_lending", "lifestyle_dim": "leverage", "recurring_type": "emi_like"},
     {"canonical_name": "LazyPay", "aliases": ["lazypay", "lazy pay", "payu finance"], "category": "bnpl_lending", "is_essential": false, "risk_flag": "bnpl_lending", "lifestyle_dim": "leverage", "recurring_type": "emi_like"},
+    {"canonical_name": "slice", "aliases": ["slice", "slicepay", "garagepreneurs"], "category": "bnpl_lending", "is_essential": false, "risk_flag": "bnpl_lending", "lifestyle_dim": "leverage", "recurring_type": "emi_like"},
+    {"canonical_name": "KreditBee", "aliases": ["kreditbee", "kredit bee", "finnovation"], "category": "bnpl_lending", "is_essential": false, "risk_flag": "bnpl_lending", "lifestyle_dim": "leverage", "recurring_type": "emi_like"},
+    {"canonical_name": "ZestMoney", "aliases": ["zestmoney", "zest money"], "category": "bnpl_lending", "is_essential": false, "risk_flag": "bnpl_lending", "lifestyle_dim": "leverage", "recurring_type": "emi_like"},
+    {"canonical_name": "MoneyTap", "aliases": ["moneytap", "money tap"], "category": "bnpl_lending", "is_essential": false, "risk_flag": "bnpl_lending", "lifestyle_dim": "leverage", "recurring_type": "emi_like"},
+    {"canonical_name": "Navi", "aliases": ["navi", "navi finserv", "navia"], "category": "bnpl_lending", "is_essential": false, "risk_flag": "bnpl_lending", "lifestyle_dim": "leverage", "recurring_type": "emi_like"},
+
     {"canonical_name": "Dream11", "aliases": ["dream11", "dream 11", "sporta technologies"], "category": "gambling", "is_essential": false, "risk_flag": "gambling", "lifestyle_dim": "risk", "recurring_type": "adhoc"},
-    {"canonical_name": "WazirX", "aliases": ["wazirx", "wazir x", "zanmai"], "category": "crypto", "is_essential": false, "risk_flag": "crypto", "lifestyle_dim": "risk", "recurring_type": "adhoc"}
-  ]
+    {"canonical_name": "MPL", "aliases": ["mpl", "mobile premier league", "galactus"], "category": "gambling", "is_essential": false, "risk_flag": "gambling", "lifestyle_dim": "risk", "recurring_type": "adhoc"},
+    {"canonical_name": "RummyCircle", "aliases": ["rummycircle", "rummy circle", "games24x7"], "category": "gambling", "is_essential": false, "risk_flag": "gambling", "lifestyle_dim": "risk", "recurring_type": "adhoc"},
+    {"canonical_name": "My11Circle", "aliases": ["my11circle", "my 11 circle"], "category": "gambling", "is_essential": false, "risk_flag": "gambling", "lifestyle_dim": "risk", "recurring_type": "adhoc"},
+    {"canonical_name": "WazirX", "aliases": ["wazirx", "wazir x", "zanmai"], "category": "crypto", "is_essential": false, "risk_flag": "crypto", "lifestyle_dim": "risk", "recurring_type": "adhoc"},
+    {"canonical_name": "CoinDCX", "aliases": ["coindcx", "coin dcx", "neblio"], "category": "crypto", "is_essential": false, "risk_flag": "crypto", "lifestyle_dim": "risk", "recurring_type": "adhoc"},
+    {"canonical_name": "CoinSwitch", "aliases": ["coinswitch", "coin switch", "kuber"], "category": "crypto", "is_essential": false, "risk_flag": "crypto", "lifestyle_dim": "risk", "recurring_type": "adhoc"},
+    {"canonical_name": "Binance", "aliases": ["binance"], "category": "crypto", "is_essential": false, "risk_flag": "crypto", "lifestyle_dim": "risk", "recurring_type": "adhoc"},
+
+    {"canonical_name": "Udemy", "aliases": ["udemy", "udemy india"], "category": "education", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "BYJU'S", "aliases": ["byjus", "byju", "think and learn"], "category": "education", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "emi_like"},
+    {"canonical_name": "Unacademy", "aliases": ["unacademy", "sorting hat"], "category": "education", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+    {"canonical_name": "Coursera", "aliases": ["coursera"], "category": "education", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+
+    {"canonical_name": "Apollo Pharmacy", "aliases": ["apollo pharmacy", "apollo", "apollo hospitals"], "category": "healthcare", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "PharmEasy", "aliases": ["pharmeasy", "pharm easy", "axelia"], "category": "healthcare", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "1mg", "aliases": ["1mg", "tata 1mg", "onemg"], "category": "healthcare", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+    {"canonical_name": "Practo", "aliases": ["practo"], "category": "healthcare", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "adhoc"},
+
+    {"canonical_name": "Tata Power", "aliases": ["tata power", "tata power ddl"], "category": "utilities", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+    {"canonical_name": "Adani Electricity", "aliases": ["adani electricity", "adani power"], "category": "utilities", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+    {"canonical_name": "MSEDCL", "aliases": ["msedcl", "mahavitaran", "maharashtra state electricity"], "category": "utilities", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+    {"canonical_name": "MPPKVVCL", "aliases": ["mppkvvcl", "mp paschim", "madhya pradesh electricity"], "category": "utilities", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+    {"canonical_name": "Indane Gas", "aliases": ["indane", "indane gas", "indian oil lpg"], "category": "utilities", "is_essential": true, "risk_flag": null, "lifestyle_dim": "essential", "recurring_type": "subscription"},
+
+    {"canonical_name": "Delhivery", "aliases": ["delhivery", "delhivery limited"], "category": "other", "is_essential": false, "risk_flag": null, "lifestyle_dim": "neutral", "recurring_type": "adhoc"},
+    {"canonical_name": "OpenAI", "aliases": ["openai", "open ai", "chatgpt"], "category": "entertainment", "is_essential": false, "risk_flag": null, "lifestyle_dim": "aspirational", "recurring_type": "subscription"},
+    {"canonical_name": "Google", "aliases": ["google", "google india", "google pay"], "category": "other", "is_essential": false, "risk_flag": null, "lifestyle_dim": "neutral", "recurring_type": "adhoc"},
+    {"canonical_name": "Paytm", "aliases": ["paytm", "one97", "paytm payments"], "category": "other", "is_essential": false, "risk_flag": null, "lifestyle_dim": "neutral", "recurring_type": "adhoc"},
+    {"canonical_name": "PhonePe", "aliases": ["phonepe", "phone pe"], "category": "other", "is_essential": false, "risk_flag": null, "lifestyle_dim": "neutral", "recurring_type": "adhoc"}
+  ],
+  "gig_payout_sources": {
+    "_note": "When these appear as a CREDIT (money INTO the account) they are gig income, not spending. feature_engineering.py (#10) reinterprets them as category=gig_platform, recurring_type=payout_source. This is what identifies the Gig Hustler archetype.",
+    "aliases": ["swiggy", "zomato", "uber", "ola", "rapido", "urbanclap", "urban company", "zepto", "blinkit", "dunzo", "porter", "amazon flex"]
+  }
 }

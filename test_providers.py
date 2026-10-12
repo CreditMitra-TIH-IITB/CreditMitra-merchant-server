@@ -54,3 +54,17 @@ def test_persistent_overload_gives_up_and_abstains(calls):
     proposal = GeminiProvider(api_key="k", model="m").classify("BEWAKOOF", "A fashion brand")
     assert proposal.abstained
     assert len(log) == providers._MAX_ATTEMPTS
+
+
+def test_timeouts_are_retried(monkeypatch):
+    monkeypatch.setattr(providers.time, "sleep", lambda s: None)
+    outcomes = [httpx.ReadTimeout("slow"), _response(200, {"summary": "A fashion brand"})]
+
+    def post(self, url, **kwargs):
+        outcome = outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(httpx.Client, "post", post)
+    assert GeminiProvider(api_key="k", model="m").describe("BEWAKOOF", None) == "A fashion brand"

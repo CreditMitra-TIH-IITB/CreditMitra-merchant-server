@@ -207,7 +207,7 @@ class GeminiProvider:
             },
         }
         # A failed call reads as an abstention. Without retrying transient
-        # errors (429 rate limit, 5xx overload — seen live as bursts of 503s),
+        # errors (429 rate limit, 5xx overload, timeouts — all seen live),
         # an overloaded API silently held back merchants it could have
         # resolved, and broke the two-path agreement that high-severity
         # categories require.
@@ -224,6 +224,12 @@ class GeminiProvider:
                 body = response.json()
                 text = body["candidates"][0]["content"]["parts"][0]["text"]
                 return json.loads(text)
+            except httpx.TimeoutException as exc:
+                if attempt < _MAX_ATTEMPTS - 1:
+                    time.sleep(_BACKOFF_SECONDS * 2**attempt)
+                    continue
+                logger.warning("Gemini call failed: %s", exc)
+                return None
             except Exception as exc:
                 logger.warning("Gemini call failed: %s", exc)
                 return None

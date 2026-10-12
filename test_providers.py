@@ -54,3 +54,58 @@ def test_persistent_overload_gives_up_and_abstains(calls):
     proposal = GeminiProvider(api_key="k", model="m").classify("BEWAKOOF", "A fashion brand")
     assert proposal.abstained
     assert len(log) == providers._MAX_ATTEMPTS
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        httpx.ReadTimeout("slow"),
+        httpx.ConnectError("[Errno -2] Name or service not known"),
+        httpx.RemoteProtocolError("Server disconnected without sending a response."),
+    ],
+)
+def test_transport_errors_are_retried(monkeypatch, error):
+    monkeypatch.setattr(providers.time, "sleep", lambda s: None)
+    outcomes = [error, _response(200, {"summary": "A fashion brand"})]
+
+    def post(self, url, **kwargs):
+        outcome = outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(httpx.Client, "post", post)
+    assert GeminiProvider(api_key="k", model="m").describe("BEWAKOOF", None) == "A fashion brand"
+
+
+def test_a_spent_daily_quota_is_not_retried_and_stops_further_calls(monkeypatch):
+    monkeypatch.setattr(providers.time, "sleep", lambda s: None)
+    request = httpx.Request("POST", "https://example.invalid")
+    spent = httpx.Response(
+        429,
+        json={"error": {"details": [{"@type": "RetryInfo", "retryDelay": "51698s"}]}},
+        request=request,
+    )
+    calls = []
+
+    def post(self, url, **kwargs):
+        calls.append(url)
+        return spent
+
+    monkeypatch.setattr(httpx.Client, "post", post)
+    gemini = GeminiProvider(api_key="k", model="m")
+
+    assert gemini.describe("BEWAKOOF", None) == "No information found"
+    assert gemini.exhausted
+    assert gemini.describe("FABINDIA", None) == "No information found"
+    assert len(calls) == 1  # no retries, and nothing after the quota was spent
+
+
+def test_a_short_rate_limit_is_still_retried(calls):
+    request = httpx.Request("POST", "https://example.invalid")
+    brief = httpx.Response(
+        429, json={"error": {"details": [{"retryDelay": "2s"}]}}, request=request
+    )
+    log = calls(brief, _response(200, {"summary": "A fashion brand"}))
+    assert GeminiProvider(api_key="k", model="m").describe("BEWAKOOF", None) == "A fashion brand"
+    assert len(log) == 2

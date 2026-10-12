@@ -28,7 +28,7 @@ def gemini_api_key() -> str:
 
 
 def gemini_model() -> str:
-    return os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+    return os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
 
 def langsearch_api_key() -> str:
@@ -36,7 +36,7 @@ def langsearch_api_key() -> str:
 
 
 def llm_timeout() -> float:
-    return float(os.getenv("MERCHANT_LLM_TIMEOUT", "20"))
+    return float(os.getenv("MERCHANT_LLM_TIMEOUT", "60"))
 
 
 def websearch_timeout() -> float:

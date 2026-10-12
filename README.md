@@ -193,12 +193,16 @@ surfaces on its own. Any model that cannot reliably say "I don't know" is
 disqualified regardless of how good its accuracy looks.
 
 > **Exercised live (October 2026)** against LangSearch and Gemini with public
-> brand names only: Namdhari's Fresh → groceries (0.95), Bewakoof → shopping
-> (0.95), Blue Tokai → dining (0.85) were promoted with evidence; a made-up
-> name abstained. Two lessons are now in the code: the original default model
-> (`gemini-2.0-flash`) had been retired upstream — set `GEMINI_MODEL` to a
-> current one — and the API returns bursts of transient 503s, which are now
-> retried with backoff instead of being read as abstentions.
+> brand names only. Promoted with evidence: Namdhari's Fresh → groceries,
+> Bewakoof → shopping, Blue Tokai → dining, FabIndia → shopping, and PaySense
+> → loan_emi (high-severity: 0.95 with both paths agreeing). A made-up name
+> abstained. Lessons now in the code: the original default model had been
+> retired upstream; the API returns bursts of 503s, timeouts and dropped
+> connections, which are retried; and the **free tier allows only ~20 requests
+> per model per day** for the larger flash models (~5 merchants, at up to 4
+> calls each), so the default is now `gemini-3.5-flash-lite`, and a spent
+> quota stops the run instead of recording every remaining name as an
+> abstention.
 
 ---
 

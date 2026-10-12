@@ -2,6 +2,8 @@
 # derived from real bank statements.
 data/enrichment_cache.db
 data/*.db
+data/*.db-wal
+data/*.db-shm
 
 .git/
 .gitignore

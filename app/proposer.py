@@ -245,7 +245,11 @@ def run_proposer(
     provider = provider or get_provider()
     websearch = websearch if websearch is not None else WebSearch()
 
-    queue = resolver.unresolved(limit=limit, min_count=config.min_hit_count())
+    queue = resolver.unresolved(
+        limit=limit,
+        min_count=config.min_hit_count(),
+        min_statements=config.min_statement_count(),
+    )
     outcomes: list[CandidateOutcome] = []
     promoted_any = False
 

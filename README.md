@@ -107,7 +107,8 @@ bar is written to the dictionary automatically.
 curl -X POST -H "X-API-Key: $MERCHANT_API_KEY"   "http://localhost:8001/api/v1/merchants/propose?limit=25"
 ```
 
-For each unresolved name asked for at least `MERCHANT_MIN_HIT_COUNT` times:
+For each unresolved name seen in at least `MERCHANT_MIN_STATEMENT_COUNT`
+distinct statements (and asked for at least `MERCHANT_MIN_HIT_COUNT` times):
 
 ```
 evidence   = LangSearch(name)
@@ -127,10 +128,15 @@ in hundreds of merchants.
 `gambling` with `lifestyle_dim: essential` is not something to defend against,
 because it cannot be expressed.
 
-**`MERCHANT_MIN_HIT_COUNT` is a privacy control as much as a cost one.** A
-person's name appears in one customer's statement; a real merchant appears
-across many. Requiring repeats keeps most misclassified individuals out of the
-proposal path before anything leaves this server.
+**`MERCHANT_MIN_STATEMENT_COUNT` is a privacy control as much as a cost one.**
+A person's name appears in one customer's statements; a real merchant appears
+across many. Requiring the name in several *distinct statements* keeps most
+misclassified individuals out of the proposal path before anything leaves this
+server. Counting requests would not do it — resubmitting one statement three
+times would clear a request count — so the engine sends an opaque `statement_id`
+with each batch (a keyed hash it cannot link to content without a secret that
+never leaves the device), and the server stores only a hash of that. Requests
+without a `statement_id` never count towards the bar.
 
 ### Promotion is automatic
 
@@ -152,7 +158,7 @@ Every promotion carries its provenance into the dictionary entry:
 
 ```json
 "provenance": {
-  "source": "auto", "model": "gemini:gemini-2.0-flash", "confidence": 0.93,
+  "source": "auto", "model": "gemini:gemini-3.8-flash", "confidence": 0.93,
   "summary": "...", "evidence": "...", "promoted_at": 1756900000.0
 }
 ```
@@ -186,10 +192,13 @@ confident mislabel corrupts every index that reads the category and never
 surfaces on its own. Any model that cannot reliably say "I don't know" is
 disqualified regardless of how good its accuracy looks.
 
-> The Gemini and LangSearch calls have **not been exercised against the live
-> APIs** — they were written without outbound network access. The pipeline,
-> the gate and the audit trail are covered by tests using fake providers;
-> expect to fix small things in the request/response shapes on first contact.
+> **Exercised live (October 2026)** against LangSearch and Gemini with public
+> brand names only: Namdhari's Fresh → groceries (0.95), Bewakoof → shopping
+> (0.95), Blue Tokai → dining (0.85) were promoted with evidence; a made-up
+> name abstained. Two lessons are now in the code: the original default model
+> (`gemini-2.0-flash`) had been retired upstream — set `GEMINI_MODEL` to a
+> current one — and the API returns bursts of transient 503s, which are now
+> retried with backoff instead of being read as abstentions.
 
 ---
 
@@ -210,7 +219,7 @@ request, one per input string.
 curl -X POST http://localhost:8001/api/v1/merchants/enrich \
   -H "X-API-Key: $MERCHANT_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"merchants": ["SWIGGY*ORDER", "JIO RECHARGE"]}'
+  -d '{"merchants": ["SWIGGY*ORDER", "JIO RECHARGE"], "statement_id": "opaque-id"}'
 ```
 
 ```json

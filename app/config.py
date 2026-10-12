@@ -28,7 +28,7 @@ def gemini_api_key() -> str:
 
 
 def gemini_model() -> str:
-    return os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    return os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
 
 def langsearch_api_key() -> str:
@@ -55,6 +55,17 @@ def min_hit_count() -> int:
     out of the proposal pipeline before anything leaves this server.
     """
     return int(os.getenv("MERCHANT_MIN_HIT_COUNT", "3"))
+
+
+def min_statement_count() -> int:
+    """How many distinct statements a name must appear in before it is proposed.
+
+    The stronger of the two privacy gates: a misclassified person shows up in
+    one customer's statements, a merchant across many. Counted per statement
+    id sent by the engine, so resubmitting a statement does not raise it.
+    Requests without a statement id never count towards it.
+    """
+    return int(os.getenv("MERCHANT_MIN_STATEMENT_COUNT", "3"))
 
 
 def promote_threshold() -> float:

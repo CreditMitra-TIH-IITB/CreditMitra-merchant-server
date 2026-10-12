@@ -64,7 +64,7 @@ def health_check() -> dict[str, str | int]:
 )
 def enrich_merchants(req: EnrichRequest) -> EnrichResponse:
     resolver = get_server_resolver()
-    results = resolver.resolve_batch(req.merchants)
+    results = resolver.resolve_batch(req.merchants, statement_id=req.statement_id)
     return EnrichResponse(
         results=results,
         dictionary_version=resolver.dictionary_version,
@@ -80,6 +80,7 @@ def enrich_merchants(req: EnrichRequest) -> EnrichResponse:
 def list_unresolved(
     limit: Annotated[int, Query(ge=1, le=1000)] = 100,
     min_count: Annotated[int, Query(ge=1)] = 1,
+    min_statements: Annotated[int, Query(ge=0)] = 0,
 ) -> UnresolvedResponse:
     """The curation queue.
 
@@ -90,7 +91,7 @@ def list_unresolved(
     where it buys the most coverage.
     """
     resolver = get_server_resolver()
-    rows = resolver.unresolved(limit=limit, min_count=min_count)
+    rows = resolver.unresolved(limit=limit, min_count=min_count, min_statements=min_statements)
     return UnresolvedResponse(
         dictionary_version=resolver.dictionary_version,
         total=len(rows),

@@ -17,6 +17,8 @@ env/
 # bank statements. Never commit.
 data/enrichment_cache.db
 data/*.db
+data/*.db-wal
+data/*.db-shm
 
 # Tooling
 .pytest_cache/

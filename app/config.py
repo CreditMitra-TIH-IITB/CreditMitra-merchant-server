@@ -57,6 +57,17 @@ def min_hit_count() -> int:
     return int(os.getenv("MERCHANT_MIN_HIT_COUNT", "3"))
 
 
+def min_statement_count() -> int:
+    """How many distinct statements a name must appear in before it is proposed.
+
+    The stronger of the two privacy gates: a misclassified person shows up in
+    one customer's statements, a merchant across many. Counted per statement
+    id sent by the engine, so resubmitting a statement does not raise it.
+    Requests without a statement id never count towards it.
+    """
+    return int(os.getenv("MERCHANT_MIN_STATEMENT_COUNT", "3"))
+
+
 def promote_threshold() -> float:
     """Confidence needed to auto-promote an ordinary category."""
     return float(os.getenv("MERCHANT_PROMOTE_THRESHOLD", "0.75"))

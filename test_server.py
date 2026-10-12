@@ -1,5 +1,6 @@
 import json
 import os
+import sqlite3
 import time
 
 import pytest
@@ -344,3 +345,49 @@ def test_a_pre_provenance_cache_is_rebuilt_not_trusted(tmp_path, monkeypatch):
 
     assert enrich(["Swiggy"])["results"][0]["canonical_name"] == "Swiggy"
     enrichment.reset_server_resolver()
+
+
+def test_the_ledger_counts_distinct_statements_and_stores_no_raw_ids(sandbox):
+    def send(statement_id):
+        client.post(
+            "/api/v1/merchants/enrich",
+            json={"merchants": ["MYSTERY STORE"], "statement_id": statement_id},
+            headers=AUTH,
+        )
+
+    send("statement-a")
+    send("statement-a")
+    send("statement-b")
+
+    item = client.get("/api/v1/merchants/unresolved", headers=AUTH).json()["items"][0]
+    assert item["hit_count"] == 3
+    assert item["statement_count"] == 2
+
+    resolver = enrichment.get_server_resolver()
+    with sqlite3.connect(resolver.cache_path) as conn:
+        keys = [r[0] for r in conn.execute("SELECT statement_key FROM unresolved_sighting")]
+    assert len(keys) == 2
+    assert "statement-a" not in keys and "statement-b" not in keys
+
+
+def test_ordinary_names_never_prefix_match_a_high_severity_merchant(sandbox):
+    """'Navin Kumar' must not resolve to Navi (BNPL) just because it starts with
+    the alias; a wrong lending/gambling tag drags the borrower's score down."""
+    add_to_dictionary(
+        sandbox,
+        {
+            "canonical_name": "Navi",
+            "aliases": ["navi"],
+            "category": "bnpl_lending",
+            "is_essential": False,
+            "risk_flag": "bnpl_lending",
+            "lifestyle_dim": "leverage",
+            "recurring_type": "emi_like",
+        },
+    )
+    enrichment.reset_server_resolver()
+
+    navin, navi = enrich(["NAVIN KUMAR", "NAVI"])["results"]
+
+    assert navin["category"] == "other"
+    assert navi["category"] == "bnpl_lending"

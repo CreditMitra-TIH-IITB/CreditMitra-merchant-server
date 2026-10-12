@@ -52,6 +52,15 @@ class EnrichRequest(BaseModel):
     merchants: list[str] = Field(
         description="Flat list of merchant name strings in order", max_length=MAX_BATCH
     )
+    statement_id: str | None = Field(
+        default=None,
+        max_length=128,
+        description=(
+            "Opaque id of the statement this batch came from. Unresolved names are "
+            "counted once per statement, so resubmitting one statement cannot push "
+            "a name over the proposer's bar. Only a hash of it is stored."
+        ),
+    )
 
 
 class EnrichResponse(BaseModel):
@@ -68,6 +77,7 @@ class UnresolvedMerchant(BaseModel):
     hit_count: int
     first_seen: float
     last_seen: float
+    statement_count: int = 0
 
 
 class UnresolvedResponse(BaseModel):

@@ -86,15 +86,19 @@ def sandbox(tmp_path, monkeypatch):
     monkeypatch.setattr(enrichment, "_CACHE_PATH", tmp_path / "cache.db")
     monkeypatch.setenv("MERCHANT_API_KEY", "test-key")
     monkeypatch.setenv("MERCHANT_MIN_HIT_COUNT", "1")
+    monkeypatch.setenv("MERCHANT_MIN_STATEMENT_COUNT", "0")
     enrichment.reset_server_resolver()
     yield dict_path
     enrichment.reset_server_resolver()
 
 
-def seen(name, times=1):
+def seen(name, times=1, statement_id=None):
     """Push a name through enrichment so it lands in the miss ledger."""
+    body = {"merchants": [name]}
+    if statement_id:
+        body["statement_id"] = statement_id
     for _ in range(times):
-        client.post("/api/v1/merchants/enrich", json={"merchants": [name]}, headers=AUTH)
+        client.post("/api/v1/merchants/enrich", json=body, headers=AUTH)
 
 
 def run(grounded, parametric=None, search="evidence text", limit=25):
@@ -373,3 +377,20 @@ def test_stub_provider_always_abstains():
     stub = StubProvider()
     assert stub.describe("anything", None) == NO_INFO
     assert stub.classify("anything", "a business").abstained
+
+
+def test_resubmitting_one_statement_cannot_reach_the_statement_bar(sandbox, monkeypatch):
+    """The privacy gate: a person's name recurs within one customer's statement.
+    However often that one statement is resubmitted, it counts once."""
+    monkeypatch.setenv("MERCHANT_MIN_STATEMENT_COUNT", "2")
+    seen("RAMESH KUMAR", times=5, statement_id="statement-a")
+    assert run(proposal("shopping", 0.99)) == []
+
+    seen("RAMESH KUMAR", statement_id="statement-b")
+    assert len(run(proposal("shopping", 0.99))) == 1
+
+
+def test_requests_without_a_statement_id_never_count_towards_the_bar(sandbox, monkeypatch):
+    monkeypatch.setenv("MERCHANT_MIN_STATEMENT_COUNT", "1")
+    seen("RAMESH KUMAR", times=10)
+    assert run(proposal("shopping", 0.99)) == []

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from app.schemas import MerchantEnrichment
+from app.taxonomy import is_high_severity
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +135,29 @@ class MerchantServerResolver:
                     sample_raw_name TEXT NOT NULL,
                     hit_count       INTEGER NOT NULL DEFAULT 1,
                     first_seen      REAL NOT NULL,
-                    last_seen       REAL NOT NULL
+                    last_seen       REAL NOT NULL,
+                    statement_count INTEGER NOT NULL DEFAULT 0
+                )
+                """
+            )
+            # The queue is curation work, not derived data, so an older ledger is
+            # migrated in place rather than rebuilt.
+            ledger_cols = {
+                row[1] for row in conn.execute("PRAGMA table_info(unresolved_merchant)").fetchall()
+            }
+            if "statement_count" not in ledger_cols:
+                conn.execute(
+                    "ALTER TABLE unresolved_merchant"
+                    " ADD COLUMN statement_count INTEGER NOT NULL DEFAULT 0"
+                )
+            # One row per (name, statement) so a statement counts once however
+            # often it is resubmitted. Only a hash of the caller's opaque id is kept.
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS unresolved_sighting (
+                    normalized_name TEXT NOT NULL,
+                    statement_key   TEXT NOT NULL,
+                    PRIMARY KEY (normalized_name, statement_key)
                 )
                 """
             )
@@ -194,12 +217,18 @@ class MerchantServerResolver:
 
     # -- miss ledger --------------------------------------------------------
 
-    def _record_miss(self, norm_name: str, raw_name: str) -> None:
-        """Every name we could not resolve, with how often it was asked for.
+    def _record_miss(self, norm_name: str, raw_name: str, statement_key: str | None) -> None:
+        """Every name we could not resolve, with how often it was asked for and
+        from how many distinct statements.
 
         This is the input to curating the dictionary. Without it an unresolved
         merchant is invisible: the caller gets `other`, nothing is logged, and
         nobody ever learns which merchants are worth adding.
+
+        `statement_count` is what gates the proposer, because it is the privacy
+        signal: a person's name recurs within one customer's statement, a real
+        merchant shows up across many statements. `hit_count` alone could be
+        pushed over the bar by resubmitting a single statement.
         """
         now = time.time()
         try:
@@ -215,6 +244,18 @@ class MerchantServerResolver:
                     """,
                     (norm_name, raw_name.strip()[:120], now, now),
                 )
+                if statement_key:
+                    new = conn.execute(
+                        "INSERT OR IGNORE INTO unresolved_sighting"
+                        " (normalized_name, statement_key) VALUES (?, ?)",
+                        (norm_name, statement_key),
+                    ).rowcount
+                    if new:
+                        conn.execute(
+                            "UPDATE unresolved_merchant SET statement_count = statement_count + 1"
+                            " WHERE normalized_name = ?",
+                            (norm_name,),
+                        )
         except Exception as exc:
             logger.debug("Miss ledger write failed for %r: %s", norm_name, exc)
 
@@ -226,17 +267,23 @@ class MerchantServerResolver:
                 conn.execute(
                     "DELETE FROM unresolved_merchant WHERE normalized_name = ?", (norm_name,)
                 )
+                conn.execute(
+                    "DELETE FROM unresolved_sighting WHERE normalized_name = ?", (norm_name,)
+                )
         except Exception as exc:
             logger.debug("Miss ledger clear failed for %r: %s", norm_name, exc)
 
-    def unresolved(self, limit: int = 100, min_count: int = 1) -> list[dict[str, Any]]:
+    def unresolved(
+        self, limit: int = 100, min_count: int = 1, min_statements: int = 0
+    ) -> list[dict[str, Any]]:
         try:
             with self._connect() as conn:
                 rows = conn.execute(
-                    "SELECT normalized_name, sample_raw_name, hit_count, first_seen, last_seen"
-                    " FROM unresolved_merchant WHERE hit_count >= ?"
-                    " ORDER BY hit_count DESC, last_seen DESC LIMIT ?",
-                    (min_count, limit),
+                    "SELECT normalized_name, sample_raw_name, hit_count, first_seen, last_seen,"
+                    " statement_count FROM unresolved_merchant"
+                    " WHERE hit_count >= ? AND statement_count >= ?"
+                    " ORDER BY statement_count DESC, hit_count DESC, last_seen DESC LIMIT ?",
+                    (min_count, min_statements, limit),
                 ).fetchall()
         except Exception as exc:
             logger.warning("Miss ledger read failed: %s", exc)
@@ -248,6 +295,7 @@ class MerchantServerResolver:
                 "hit_count": r[2],
                 "first_seen": r[3],
                 "last_seen": r[4],
+                "statement_count": r[5],
             }
             for r in rows
         ]
@@ -264,9 +312,18 @@ class MerchantServerResolver:
             for alias, candidate in self._alias_map.items():
                 if len(alias) < 4 or len(norm_name) < 4:
                     continue
-                if norm_name.startswith(alias) or alias.startswith(norm_name):
-                    if best is None or len(alias) > best[0]:
-                        best = (len(alias), candidate)
+                truncation_of_alias = alias.startswith(norm_name)
+                extends_alias = norm_name.startswith(alias)
+                # A high-severity label must not be reached by a longer name that
+                # merely begins with the alias: "navin kumar" is not Navi,
+                # "simple mart" is not Simpl. Exact or truncated matches only —
+                # same rule as the engine's dictionary tier.
+                if is_high_severity(candidate.get("category", "")):
+                    extends_alias = False
+                if (truncation_of_alias or extends_alias) and (
+                    best is None or len(alias) > best[0]
+                ):
+                    best = (len(alias), candidate)
             if best is None:
                 return None
             entry = best[1]
@@ -291,7 +348,7 @@ class MerchantServerResolver:
             if len(a) >= 4
         )
 
-    def resolve(self, raw_name: str) -> MerchantEnrichment:
+    def resolve(self, raw_name: str, statement_key: str | None = None) -> MerchantEnrichment:
         norm = normalize_name(raw_name)
         if not norm:
             return MerchantEnrichment.unknown(raw_name)
@@ -300,7 +357,7 @@ class MerchantServerResolver:
         if cached is not None:
             enrichment, source = cached
             if source == SOURCE_UNKNOWN:
-                self._record_miss(norm, raw_name)
+                self._record_miss(norm, raw_name, statement_key)
             return enrichment
 
         hit = self.lookup_dict(norm)
@@ -311,15 +368,26 @@ class MerchantServerResolver:
 
         fallback = MerchantEnrichment.unknown(raw_name)
         self._save_to_cache(norm, fallback, SOURCE_UNKNOWN)
-        self._record_miss(norm, raw_name)
+        self._record_miss(norm, raw_name, statement_key)
         return fallback
 
-    def resolve_batch(self, names: list[str]) -> list[MerchantEnrichment]:
-        """Order-preserving and deduplicated: six IRCTC rows cost one lookup."""
+    def resolve_batch(
+        self, names: list[str], statement_id: str | None = None
+    ) -> list[MerchantEnrichment]:
+        """Order-preserving and deduplicated: six IRCTC rows cost one lookup.
+
+        `statement_id` is the caller's opaque id for the statement the batch came
+        from; only a hash of it is stored, to count distinct statements.
+        """
+        statement_key = (
+            hashlib.sha256(statement_id.encode("utf-8")).hexdigest()[:24]
+            if statement_id
+            else None
+        )
         unique: dict[str, str] = {}
         for name in names:
             unique.setdefault(normalize_name(name), name)
-        resolved = {norm: self.resolve(raw) for norm, raw in unique.items()}
+        resolved = {norm: self.resolve(raw, statement_key) for norm, raw in unique.items()}
         return [resolved[normalize_name(n)] for n in names]
 
 

@@ -36,7 +36,7 @@ def langsearch_api_key() -> str:
 
 
 def llm_timeout() -> float:
-    return float(os.getenv("MERCHANT_LLM_TIMEOUT", "20"))
+    return float(os.getenv("MERCHANT_LLM_TIMEOUT", "60"))
 
 
 def websearch_timeout() -> float:

@@ -36,6 +36,25 @@ NO_INFO = "No information found"
 _RETRYABLE = {429, 500, 502, 503, 504}
 _MAX_ATTEMPTS = 4
 _BACKOFF_SECONDS = 2.0
+# A 429 asking to wait longer than this is a spent quota (the free tier's daily
+# allowance answers "retry after 51698s"), not a burst limit: stop calling.
+_QUOTA_EXHAUSTED_AFTER_SECONDS = 60.0
+
+
+def _retry_after_seconds(response: httpx.Response) -> float | None:
+    """The wait a 429 asks for, from Gemini's RetryInfo detail or the header."""
+    try:
+        for detail in response.json().get("error", {}).get("details", []):
+            delay = detail.get("retryDelay")
+            if delay:
+                return float(str(delay).rstrip("s"))
+    except Exception:
+        pass
+    header = response.headers.get("retry-after")
+    try:
+        return float(header) if header else None
+    except ValueError:
+        return None
 
 
 @dataclass(frozen=True)
@@ -190,9 +209,12 @@ class GeminiProvider:
         self._api_key = api_key if api_key is not None else config.gemini_api_key()
         self._model = model or config.gemini_model()
         self.name = f"gemini:{self._model}"
+        # Set once the API says the quota is spent; every later call is skipped
+        # instead of burning retries, and the proposer stops the run.
+        self.exhausted = False
 
     def _generate(self, prompt: str, schema: dict) -> dict | None:
-        if not self._api_key:
+        if not self._api_key or self.exhausted:
             return None
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
@@ -217,6 +239,16 @@ class GeminiProvider:
                     response = client.post(
                         url, headers={"x-goog-api-key": self._api_key}, json=payload
                     )
+                if response.status_code == 429:
+                    wait = _retry_after_seconds(response)
+                    if wait is not None and wait > _QUOTA_EXHAUSTED_AFTER_SECONDS:
+                        self.exhausted = True
+                        logger.warning(
+                            "Gemini quota exhausted for %s; it resets in ~%.0f h",
+                            self._model,
+                            wait / 3600,
+                        )
+                        return None
                 if response.status_code in _RETRYABLE and attempt < _MAX_ATTEMPTS - 1:
                     time.sleep(_BACKOFF_SECONDS * 2**attempt)
                     continue

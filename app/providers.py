@@ -224,7 +224,8 @@ class GeminiProvider:
                 body = response.json()
                 text = body["candidates"][0]["content"]["parts"][0]["text"]
                 return json.loads(text)
-            except httpx.TimeoutException as exc:
+            # Timeouts, dropped connections, momentary DNS failures: all seen live.
+            except httpx.TransportError as exc:
                 if attempt < _MAX_ATTEMPTS - 1:
                     time.sleep(_BACKOFF_SECONDS * 2**attempt)
                     continue

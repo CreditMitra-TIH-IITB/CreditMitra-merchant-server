@@ -56,9 +56,17 @@ def test_persistent_overload_gives_up_and_abstains(calls):
     assert len(log) == providers._MAX_ATTEMPTS
 
 
-def test_timeouts_are_retried(monkeypatch):
+@pytest.mark.parametrize(
+    "error",
+    [
+        httpx.ReadTimeout("slow"),
+        httpx.ConnectError("[Errno -2] Name or service not known"),
+        httpx.RemoteProtocolError("Server disconnected without sending a response."),
+    ],
+)
+def test_transport_errors_are_retried(monkeypatch, error):
     monkeypatch.setattr(providers.time, "sleep", lambda s: None)
-    outcomes = [httpx.ReadTimeout("slow"), _response(200, {"summary": "A fashion brand"})]
+    outcomes = [error, _response(200, {"summary": "A fashion brand"})]
 
     def post(self, url, **kwargs):
         outcome = outcomes.pop(0)

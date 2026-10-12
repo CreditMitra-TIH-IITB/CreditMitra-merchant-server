@@ -158,7 +158,7 @@ Every promotion carries its provenance into the dictionary entry:
 
 ```json
 "provenance": {
-  "source": "auto", "model": "gemini:gemini-2.0-flash", "confidence": 0.93,
+  "source": "auto", "model": "gemini:gemini-3.8-flash", "confidence": 0.93,
   "summary": "...", "evidence": "...", "promoted_at": 1756900000.0
 }
 ```
@@ -192,10 +192,13 @@ confident mislabel corrupts every index that reads the category and never
 surfaces on its own. Any model that cannot reliably say "I don't know" is
 disqualified regardless of how good its accuracy looks.
 
-> The Gemini and LangSearch calls have **not been exercised against the live
-> APIs** — they were written without outbound network access. The pipeline,
-> the gate and the audit trail are covered by tests using fake providers;
-> expect to fix small things in the request/response shapes on first contact.
+> **Exercised live (October 2026)** against LangSearch and Gemini with public
+> brand names only: Namdhari's Fresh → groceries (0.95), Bewakoof → shopping
+> (0.95), Blue Tokai → dining (0.85) were promoted with evidence; a made-up
+> name abstained. Two lessons are now in the code: the original default model
+> (`gemini-2.0-flash`) had been retired upstream — set `GEMINI_MODEL` to a
+> current one — and the API returns bursts of transient 503s, which are now
+> retried with backoff instead of being read as abstentions.
 
 ---
 

@@ -28,7 +28,7 @@ def gemini_api_key() -> str:
 
 
 def gemini_model() -> str:
-    return os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    return os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
 
 def langsearch_api_key() -> str:

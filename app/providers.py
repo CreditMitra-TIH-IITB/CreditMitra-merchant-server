@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -31,6 +32,10 @@ from app.taxonomy import VALID_CATEGORIES, VALID_RECURRING
 logger = logging.getLogger(__name__)
 
 NO_INFO = "No information found"
+
+_RETRYABLE = {429, 500, 502, 503, 504}
+_MAX_ATTEMPTS = 4
+_BACKOFF_SECONDS = 2.0
 
 
 @dataclass(frozen=True)
@@ -193,27 +198,36 @@ class GeminiProvider:
             f"https://generativelanguage.googleapis.com/v1beta/models/"
             f"{self._model}:generateContent"
         )
-        try:
-            with httpx.Client(timeout=config.llm_timeout()) as client:
-                response = client.post(
-                    url,
-                    headers={"x-goog-api-key": self._api_key},
-                    json={
-                        "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {
-                            "responseMimeType": "application/json",
-                            "responseSchema": schema,
-                            "temperature": 0.0,
-                        },
-                    },
-                )
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": schema,
+                "temperature": 0.0,
+            },
+        }
+        # A failed call reads as an abstention. Without retrying transient
+        # errors (429 rate limit, 5xx overload — seen live as bursts of 503s),
+        # an overloaded API silently held back merchants it could have
+        # resolved, and broke the two-path agreement that high-severity
+        # categories require.
+        for attempt in range(_MAX_ATTEMPTS):
+            try:
+                with httpx.Client(timeout=config.llm_timeout()) as client:
+                    response = client.post(
+                        url, headers={"x-goog-api-key": self._api_key}, json=payload
+                    )
+                if response.status_code in _RETRYABLE and attempt < _MAX_ATTEMPTS - 1:
+                    time.sleep(_BACKOFF_SECONDS * 2**attempt)
+                    continue
                 response.raise_for_status()
                 body = response.json()
-            text = body["candidates"][0]["content"]["parts"][0]["text"]
-            return json.loads(text)
-        except Exception as exc:
-            logger.warning("Gemini call failed: %s", exc)
-            return None
+                text = body["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(text)
+            except Exception as exc:
+                logger.warning("Gemini call failed: %s", exc)
+                return None
+        return None
 
     def describe(self, merchant: str, evidence: str | None) -> str:
         result = self._generate(_describe_prompt(merchant, evidence), _DESCRIBE_SCHEMA)

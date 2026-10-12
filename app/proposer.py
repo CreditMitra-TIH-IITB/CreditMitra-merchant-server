@@ -260,6 +260,24 @@ def run_proposer(
         grounded = provider.classify(raw, provider.describe(raw, evidence))
         parametric = provider.classify(raw, provider.describe(raw, None))
 
+        if getattr(provider, "exhausted", False):
+            # The model never judged this name, so record nothing about it: it
+            # stays in the queue and is proposed on the next run. Every name
+            # after it would fail the same way, so stop here.
+            outcomes.append(
+                CandidateOutcome(
+                    normalized_name=normalized,
+                    raw_name=raw,
+                    category=None,
+                    confidence=0.0,
+                    agreement=False,
+                    status=STATUS_HELD,
+                    reason="LLM quota exhausted; not judged, will be retried on the next run",
+                    model=provider.name,
+                )
+            )
+            break
+
         # Prefer the grounded opinion; fall back to the parametric one when the
         # search returned nothing useful.
         chosen = grounded if not grounded.abstained else parametric

@@ -394,3 +394,32 @@ def test_requests_without_a_statement_id_never_count_towards_the_bar(sandbox, mo
     monkeypatch.setenv("MERCHANT_MIN_STATEMENT_COUNT", "1")
     seen("RAMESH KUMAR", times=10)
     assert run(proposal("shopping", 0.99)) == []
+
+
+class QuotaSpentProvider(FakeProvider):
+    """Answers for the first merchant, then reports its quota spent."""
+
+    def __init__(self, grounded: Proposal) -> None:
+        super().__init__(grounded)
+        self.exhausted = False
+
+    def describe(self, merchant: str, evidence: str | None) -> str:
+        if len(self.describe_calls) >= 2:
+            self.exhausted = True
+        return super().describe(merchant, evidence)
+
+
+def test_a_spent_quota_stops_the_run_and_leaves_names_queued(sandbox):
+    seen("FIRST SHOP")
+    seen("SECOND SHOP")
+    seen("THIRD SHOP")
+
+    provider = QuotaSpentProvider(proposal("shopping", 0.99))
+    outcomes = proposer.run_proposer(limit=25, provider=provider, websearch=FakeSearch())
+
+    judged = [o for o in outcomes if "quota" not in o.reason]
+    stopped = [o for o in outcomes if "quota" in o.reason]
+    assert len(judged) == 1 and len(stopped) == 1  # third name never attempted
+    assert stopped[0].status == "held"
+    queue = client.get("/api/v1/merchants/unresolved", headers=AUTH).json()["items"]
+    assert len(queue) == 2  # both unjudged names stay queued for the next run
